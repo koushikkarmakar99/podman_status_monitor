@@ -1,3 +1,5 @@
 [user]
 	name = Koushik Karmakar
 	email = karmakar.2007@gmail.com
+[credential]
+	helper = manager-core

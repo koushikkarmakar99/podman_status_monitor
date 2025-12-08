@@ -37,7 +37,8 @@ export function activate(context: vscode.ExtensionContext) {
                 placeHolder: 'What would you like to do?'
             });
             if (selection === 'Reboot Machine') {
-                const { stdout, stderr, exitCode } = await runCommand('shutdown /r /t 5');
+                const command: string = os.platform() === 'win32' ? 'shutdown /r /t 5' : 'sudo reboot';
+                const { stdout, stderr, exitCode } = await runCommand(command);
                 if (exitCode === 0) {
                     vscode.window.showInformationMessage('Machine will reboot in 5 seconds.', 'Close');
                 } else {
@@ -79,30 +80,30 @@ export function activate(context: vscode.ExtensionContext) {
         if (exitCode != 0) {
             statusBar.text = '$(error) Podman: Error';
             statusBar.color = 'pink';
+             // If user clicks on the status bar, we could prompt at the top pallete to select the option to reboot podman machine
+            statusBar.command = 'podmanStatusMonitor.rebootMachine';
+            stopStatusCheck();
             const selection = await vscode.window.showErrorMessage('Error checking Podman status. Please ensure Podman is installed. If Podman is installed, then click to reboot the machine.', 'Reboot Machine', 'Close');
             if (selection === 'Reboot Machine') {
                 await vscode.commands.executeCommand('podmanStatusMonitor.rebootMachine');
             }
-            // If user clicks on the status bar, we could prompt at the top pallete to select the option to reboot podman machine
-            statusBar.command = 'podmanStatusMonitor.rebootMachine';
-            stopStatusCheck();
         }
         else {
             if (running) {
                 statusBar.text = '$(remote) Podman: Running';
                 statusBar.color = 'green';
-                startStatusCheck();
                 statusBar.command = undefined; // Clear any previous command
+                startStatusCheck();
             } else {
                 statusBar.text = '$(warning) Podman: Stopped';
                 statusBar.color = 'red';
+                // If user clicks on the status bar, we could prompt at the top pallete to select the option to start podman
+                statusBar.command = 'podmanStatusMonitor.startPodman';
+                stopStatusCheck();
                 const selection = await vscode.window.showWarningMessage('Podman machine is not running. Click the status bar to start it.', 'Start Podman', 'Close');
                 if (selection === 'Start Podman') {
                     await vscode.commands.executeCommand('podmanStatusMonitor.startPodman');
                 }
-                // If user clicks on the status bar, we could prompt at the top pallete to select the option to start podman
-                statusBar.command = 'podmanStatusMonitor.startPodman';
-                stopStatusCheck();
             }
         }
     }
