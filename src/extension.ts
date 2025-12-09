@@ -5,7 +5,6 @@ import * as os from 'os';
 let statusCheckInterval: NodeJS.Timeout | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-    const output = vscode.window.createOutputChannel('Podman Status Monitor');
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 80);
     statusBar.tooltip = 'Podman Machine Status';
     statusBar.show();
@@ -20,6 +19,8 @@ export function activate(context: vscode.ExtensionContext) {
 
             if (selection === 'Start Podman Machine') {
                 const { stdout, stderr, exitCode } = await runCommand('podman machine start');
+                console.log(`Podman start command stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
+
                 if (exitCode === 0) {
                     vscode.window.showInformationMessage('Podman machine started successfully.', 'Close');
                     await checkPodmanStatus(); // Refresh status
@@ -39,6 +40,8 @@ export function activate(context: vscode.ExtensionContext) {
             if (selection === 'Reboot Machine') {
                 const command: string = os.platform() === 'win32' ? 'shutdown /r /t 5' : 'sudo reboot';
                 const { stdout, stderr, exitCode } = await runCommand(command);
+                console.log(`Reboot command stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
+
                 if (exitCode === 0) {
                     vscode.window.showInformationMessage('Machine will reboot in 5 seconds.', 'Close');
                 } else {
@@ -60,26 +63,37 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }
 
-    async function isPodmanRunning(): Promise<{ running: boolean, exitCode: number | null }> {
+    async function isPodmanRunning(): Promise<{ running: boolean; exitCode: number | null; stderr:string | null }> {
         const { stdout, stderr, exitCode } = await runCommand('podman machine list --format "{{.Running}}"');
+        console.log(`Podman status check stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
 
-        // await vscode.window.showInformationMessage(`${stderr}`);
         if (exitCode != 0) {
-            return { running: false, exitCode };
+            return { running: false, exitCode, stderr };
         }
 
         if (stdout.trim() === 'true') {
-            return { running: true, exitCode };
+            return { running: true, exitCode, stderr: null };
         }
-        return { running: false, exitCode };
+        return { running: false, exitCode, stderr: null };
     }
 
     async function checkPodmanStatus() {
-        const { running, exitCode } = await isPodmanRunning();
+        const { running, exitCode, stderr } = await isPodmanRunning();
+
+        if (stderr?.includes('command not found') || stderr?.includes('is not recognized')) {
+            statusBar.text = '$(error) Podman: Not Installed';
+            statusBar.color = 'purple';
+            stopStatusCheck();
+            const selection = await vscode.window.showErrorMessage('Podman is not installed. Please visit official Podman page for installation instructions.', 'Visit Website', 'Close');
+            if (selection === 'Visit Website') {
+                vscode.env.openExternal(vscode.Uri.parse('https://podman.io/docs/installation'));
+            }
+            return;
+        }
 
         if (exitCode != 0) {
             statusBar.text = '$(error) Podman: Error';
-            statusBar.color = 'pink';
+            statusBar.color = 'purple';
              // If user clicks on the status bar, we could prompt at the top pallete to select the option to reboot podman machine
             statusBar.command = 'podmanStatusMonitor.rebootMachine';
             stopStatusCheck();
@@ -90,7 +104,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
         else {
             if (running) {
-                statusBar.text = '$(remote) Podman: Running';
+                statusBar.text = '$(rocket) Podman: Running';
                 statusBar.color = 'green';
                 statusBar.command = undefined; // Clear any previous command
                 startStatusCheck();
