@@ -1,0 +1,13 @@
+.vscode/**
+.vscode-test/**
+node_modules/@types/**
+node_modules/typescript/**
+node_modules/vscode/**
+node_modules/vscode-test/**
+src/**
+.git/**
+.github/**
+.gitignore
+.gitconfig
+tsconfig.json
+TODO.md

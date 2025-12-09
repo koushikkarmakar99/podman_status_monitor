@@ -18,15 +18,29 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             if (selection === 'Start Podman Machine') {
-                const { stdout, stderr, exitCode } = await runCommand('podman machine start');
-                console.log(`Podman start command stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
+                await vscode.window.withProgress(
+                    {
+                        location: vscode.ProgressLocation.Notification,
+                        title: 'Starting Podman Machine',
+                        cancellable: false
+                    },
+                    async (progress) => {
+                        progress.report({ increment: 0, message: 'Initializing...' });
+                        
+                        const { stdout, stderr, exitCode } = await runCommand('podman machine start');
+                        console.log(`Podman start command stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
 
-                if (exitCode === 0) {
-                    vscode.window.showInformationMessage('Podman machine started successfully.', 'Close');
-                    await checkPodmanStatus(); // Refresh status
-                } else {
-                    vscode.window.showErrorMessage(`Failed to start Podman: ${stderr}`, 'Close');
-                }
+                        progress.report({ increment: 50, message: 'Starting machine...' });
+
+                        if (exitCode === 0) {
+                            progress.report({ increment: 100, message: 'Verifying status...' });
+                            await checkPodmanStatus(); // Refresh status
+                            vscode.window.showInformationMessage('Podman machine started successfully.', 'Close');
+                        } else {
+                            vscode.window.showErrorMessage(`Failed to start Podman: ${stderr}`, 'Close');
+                        }
+                    }
+                );
             }
         })
     );
