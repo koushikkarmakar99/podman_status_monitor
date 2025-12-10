@@ -12,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
     statusBar.show();
     context.subscriptions.push(statusBar);
 
-    // Register manual refresh command
+    // Register manual refresh command with notification
     context.subscriptions.push(
         vscode.commands.registerCommand('podman.refreshStatus', async () => {
             await checkPodmanStatus();
@@ -105,11 +105,11 @@ export function activate(context: vscode.ExtensionContext) {
     async function checkPodmanStatus() {
         console.log('Host machine OS:', os.platform());
         const { running, exitCode, stderr } = await isPodmanRunning();
+        statusBar.command = 'podman.refreshStatus'; // Reset command to manual refresh
 
         if (stderr?.includes('command not found') || stderr?.includes('is not recognized')) {
             statusBar.text = '$(error) Podman: Not Installed';
             statusBar.color = 'purple';
-            // stopStatusCheck();
             const selection = await vscode.window.showErrorMessage('Podman is not installed. Please visit official Podman page for installation instructions.', 'Visit Website', 'Close');
 
             if (selection === 'Visit Website') {
@@ -133,7 +133,6 @@ export function activate(context: vscode.ExtensionContext) {
             if (running) {
                 statusBar.text = '$(rocket) Podman: Running';
                 statusBar.color = 'green';
-                statusBar.command = undefined; // Clear any previous command
             } else {
 
                 // In Linux we don't need podman to create a machine to run containers as it uses the native Linux kernel
@@ -151,6 +150,7 @@ export function activate(context: vscode.ExtensionContext) {
                     if (selection === 'Start Podman') {
                         await vscode.commands.executeCommand('podmanStatusMonitor.startPodman');
                     }
+                    vscode.commands.executeCommand('podmanStatusMonitor.refreshStatus');
                 }
             }
         }
