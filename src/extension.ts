@@ -6,9 +6,19 @@ let statusCheckInterval: NodeJS.Timeout | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 80);
+    statusBar.text = '$(rocket) Podman';
     statusBar.tooltip = 'Podman Machine Status';
+    statusBar.command = 'podman.refreshStatus';
     statusBar.show();
     context.subscriptions.push(statusBar);
+
+    // Register manual refresh command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('podman.refreshStatus', async () => {
+            await checkPodmanStatus();
+            vscode.window.showInformationMessage('Podman status refreshed');
+        })
+    );
 
     // Register the startPodman command
     context.subscriptions.push(
@@ -99,7 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (stderr?.includes('command not found') || stderr?.includes('is not recognized')) {
             statusBar.text = '$(error) Podman: Not Installed';
             statusBar.color = 'purple';
-            stopStatusCheck();
+            // stopStatusCheck();
             const selection = await vscode.window.showErrorMessage('Podman is not installed. Please visit official Podman page for installation instructions.', 'Visit Website', 'Close');
 
             if (selection === 'Visit Website') {
@@ -113,7 +123,6 @@ export function activate(context: vscode.ExtensionContext) {
             statusBar.color = 'purple';
             // If user clicks on the status bar, we could prompt at the top pallete to select the option to reboot podman machine
             statusBar.command = 'podmanStatusMonitor.rebootMachine';
-            stopStatusCheck();
             const selection = await vscode.window.showErrorMessage('Error checking Podman status. Please ensure Podman is installed. If Podman is installed, then click to reboot the machine.', 'Reboot Machine', 'Close');
 
             if (selection === 'Reboot Machine') {
@@ -125,7 +134,6 @@ export function activate(context: vscode.ExtensionContext) {
                 statusBar.text = '$(rocket) Podman: Running';
                 statusBar.color = 'green';
                 statusBar.command = undefined; // Clear any previous command
-                startStatusCheck();
             } else {
 
                 // In Linux we don't need podman to create a machine to run containers as it uses the native Linux kernel
@@ -133,13 +141,11 @@ export function activate(context: vscode.ExtensionContext) {
                     statusBar.text = '$(rocket) Podman: Installed';
                     statusBar.color = 'green';
                     statusBar.tooltip = 'Podman on Linux runs containers using host kernel namespaces/cgroups, no VM required.';
-                    startStatusCheck();
                 } else {
-                    statusBar.text = '$(warning) Podman: Stopped';
+                    statusBar.text = '$(circle-slash) Podman: Stopped';
                     statusBar.color = 'red';
                     // If user clicks on the status bar, we could prompt at the top pallete to select the option to start podman
                     statusBar.command = 'podmanStatusMonitor.startPodman';
-                    stopStatusCheck();
                     const selection = await vscode.window.showWarningMessage('Podman machine is not running. Click the status bar to start it.', 'Start Podman', 'Close');
 
                     if (selection === 'Start Podman') {
@@ -147,23 +153,6 @@ export function activate(context: vscode.ExtensionContext) {
                     }
                 }
             }
-        }
-    }
-
-    function startStatusCheck() {
-
-        if (!statusCheckInterval) {
-            statusCheckInterval = setInterval(async () => {
-                await checkPodmanStatus();
-            }, 10000);
-        }
-    }
-
-    function stopStatusCheck() {
-
-        if (statusCheckInterval) {
-            clearInterval(statusCheckInterval);
-            statusCheckInterval = undefined;
         }
     }
 
