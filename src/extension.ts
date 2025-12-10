@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
                     },
                     async (progress) => {
                         progress.report({ increment: 0, message: 'Initializing...' });
-                        
+
                         const { stdout, stderr, exitCode } = await runCommand('podman machine start');
                         console.log(`Podman start command stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
 
@@ -51,6 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
             const selection = await vscode.window.showQuickPick(['Reboot Machine', 'Cancel'], {
                 placeHolder: 'What would you like to do?'
             });
+
             if (selection === 'Reboot Machine') {
                 const command: string = os.platform() === 'win32' ? 'shutdown /r /t 5' : 'sudo reboot';
                 const { stdout, stderr, exitCode } = await runCommand(command);
@@ -77,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
         });
     }
 
-    async function isPodmanRunning(): Promise<{ running: boolean; exitCode: number | null; stderr:string | null }> {
+    async function isPodmanRunning(): Promise<{ running: boolean; exitCode: number | null; stderr: string | null }> {
         const { stdout, stderr, exitCode } = await runCommand('podman machine list --format "{{.Running}}"');
         console.log(`Podman status check stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
 
@@ -92,6 +93,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     async function checkPodmanStatus() {
+        console.log('Host machine OS:', os.platform());
         const { running, exitCode, stderr } = await isPodmanRunning();
 
         if (stderr?.includes('command not found') || stderr?.includes('is not recognized')) {
@@ -99,6 +101,7 @@ export function activate(context: vscode.ExtensionContext) {
             statusBar.color = 'purple';
             stopStatusCheck();
             const selection = await vscode.window.showErrorMessage('Podman is not installed. Please visit official Podman page for installation instructions.', 'Visit Website', 'Close');
+
             if (selection === 'Visit Website') {
                 vscode.env.openExternal(vscode.Uri.parse('https://podman.io/docs/installation'));
             }
@@ -108,10 +111,11 @@ export function activate(context: vscode.ExtensionContext) {
         if (exitCode != 0) {
             statusBar.text = '$(error) Podman: Error';
             statusBar.color = 'purple';
-             // If user clicks on the status bar, we could prompt at the top pallete to select the option to reboot podman machine
+            // If user clicks on the status bar, we could prompt at the top pallete to select the option to reboot podman machine
             statusBar.command = 'podmanStatusMonitor.rebootMachine';
             stopStatusCheck();
             const selection = await vscode.window.showErrorMessage('Error checking Podman status. Please ensure Podman is installed. If Podman is installed, then click to reboot the machine.', 'Reboot Machine', 'Close');
+
             if (selection === 'Reboot Machine') {
                 await vscode.commands.executeCommand('podmanStatusMonitor.rebootMachine');
             }
@@ -123,20 +127,31 @@ export function activate(context: vscode.ExtensionContext) {
                 statusBar.command = undefined; // Clear any previous command
                 startStatusCheck();
             } else {
-                statusBar.text = '$(warning) Podman: Stopped';
-                statusBar.color = 'red';
-                // If user clicks on the status bar, we could prompt at the top pallete to select the option to start podman
-                statusBar.command = 'podmanStatusMonitor.startPodman';
-                stopStatusCheck();
-                const selection = await vscode.window.showWarningMessage('Podman machine is not running. Click the status bar to start it.', 'Start Podman', 'Close');
-                if (selection === 'Start Podman') {
-                    await vscode.commands.executeCommand('podmanStatusMonitor.startPodman');
+
+                // In Linux we don't need podman to create a machine to run containers as it uses the native Linux kernel
+                if (os.platform() === 'linux') {
+                    statusBar.text = '$(rocket) Podman: Installed';
+                    statusBar.color = 'green';
+                    statusBar.tooltip = 'Podman on Linux runs containers using host kernel namespaces/cgroups, no VM required.';
+                    startStatusCheck();
+                } else {
+                    statusBar.text = '$(warning) Podman: Stopped';
+                    statusBar.color = 'red';
+                    // If user clicks on the status bar, we could prompt at the top pallete to select the option to start podman
+                    statusBar.command = 'podmanStatusMonitor.startPodman';
+                    stopStatusCheck();
+                    const selection = await vscode.window.showWarningMessage('Podman machine is not running. Click the status bar to start it.', 'Start Podman', 'Close');
+
+                    if (selection === 'Start Podman') {
+                        await vscode.commands.executeCommand('podmanStatusMonitor.startPodman');
+                    }
                 }
             }
         }
     }
 
     function startStatusCheck() {
+
         if (!statusCheckInterval) {
             statusCheckInterval = setInterval(async () => {
                 await checkPodmanStatus();
@@ -145,6 +160,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     function stopStatusCheck() {
+
         if (statusCheckInterval) {
             clearInterval(statusCheckInterval);
             statusCheckInterval = undefined;
@@ -156,6 +172,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
+
     if (statusCheckInterval) {
         clearInterval(statusCheckInterval);
     }
