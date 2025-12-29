@@ -1,58 +1,128 @@
 import * as vscode from 'vscode';
-import { exec } from 'node:child_process';
 import * as os from 'node:os';
+import PodmanManager from './classes/podman-manager';
 import Logger from './classes/logger';
 
 let statusCheckInterval: NodeJS.Timeout | undefined;
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     Logger.info('Activating Podman Status Monitor extension');
+    const podmanManager = new PodmanManager(); // Create instance of PodmanManager
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 80);
     statusBar.text = '$(rocket) Podman';
-    statusBar.tooltip = 'Podman Machine Status';
+    statusBar.tooltip = await podmanManager.toolTipStatus();
     statusBar.command = 'podman.refreshStatus';
     statusBar.show();
     context.subscriptions.push(statusBar,
         vscode.commands.registerCommand('podman.refreshStatus', async () => {
-            await checkPodmanStatus();
+            await podmanManager.checkPodmanStatus(statusBar);
             vscode.window.showInformationMessage('Podman status refreshed');
-            Logger.info('Podman status refreshed by user');
-        })
-        ,
-        vscode.commands.registerCommand('podmanStatusMonitor.startPodman', async () => {
-            const selection = await vscode.window.showQuickPick(['Start Podman Machine', 'Cancel'], {
-                placeHolder: 'What would you like to do?'
+            statusBar.tooltip = await podmanManager.toolTipStatus();
+            Logger.info(`Podman status refreshed by user: ${os.userInfo().username}`);
+        }),
+        vscode.commands.registerCommand('podmanStatusMonitor.startPodman', async (stoppedMachines?: string[] | null) => {
+            let machineList: string[] = [];
+
+            // If no machines provided, get list of stopped machines
+            if (!stoppedMachines || stoppedMachines.length === 0) {
+                const { stdout: machineListOutput } = await podmanManager.runCommand('podman machine list --format json');
+
+                try {
+                    const parsed = JSON.parse(machineListOutput);
+                    machineList = parsed.filter((m: any) => !m.Running).map((m: any) => m.Name);
+
+                    if (machineList.length === 0) {
+                        vscode.window.showInformationMessage('All Podman machines are already running.');
+                        return;
+                    }
+                } catch (error) {
+                    vscode.window.showErrorMessage('Failed to get Podman machine list.');
+                    Logger.error(`Failed to parse machine list: ${error}`);
+                    return;
+                }
+            } else {
+                machineList = stoppedMachines;
+            }
+
+            // Ensure we have a valid array before showing quick pick
+            if (machineList.length === 0) {
+                vscode.window.showInformationMessage('No stopped Podman machines found.');
+                return;
+            }
+
+            // Let user select which machines to start (multi-select)
+            const selectedMachines = await vscode.window.showQuickPick(machineList, {
+                placeHolder: 'Select Podman machine(s) to start',
+                canPickMany: true,
+                ignoreFocusOut: true
             });
 
-            if (selection === 'Start Podman Machine') {
-                await vscode.window.withProgress(
-                    {
-                        location: vscode.ProgressLocation.Notification,
-                        title: 'Starting Podman Machine',
-                        cancellable: false
-                    },
-                    async (progress) => {
-                        progress.report({ increment: 0, message: 'Initializing...' });
+            if (!selectedMachines || selectedMachines.length === 0) {
+                return; // User cancelled or selected nothing
+            }
 
-                        const { stdout, stderr, exitCode } = await runCommand('podman machine start ${machineName}');
-                        Logger.info(`Podman start command stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
+            // Start selected machines
+            await vscode.window.withProgress(
+                {
+                    location: vscode.ProgressLocation.Notification,
+                    title: `Starting ${selectedMachines.length} Podman Machine(s)`,
+                    cancellable: false
+                },
+                async (progress) => {
+                    const totalMachines = selectedMachines.length;
+                    let completedMachines = 0;
+                    const results: { machine: string; success: boolean; error?: string }[] = [];
 
-                        progress.report({ increment: 50, message: 'Starting machine...' });
+                    for (const machineName of selectedMachines) {
+                        progress.report({
+                            increment: 0,
+                            message: `Starting ${machineName} (${completedMachines + 1}/${totalMachines})...`
+                        });
+
+                        const { stdout, stderr, exitCode } = await podmanManager.runCommand(`podman machine start ${machineName}`);
+                        Logger.info(`Podman start command for ${machineName} - stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
 
                         if (exitCode === 0) {
-                            progress.report({ increment: 100, message: 'Verifying status...' });
-                            await checkPodmanStatus(); // Refresh status
-                            vscode.window.showInformationMessage('Podman machine started successfully.', 'Close');
-                            Logger.info('Podman machine started successfully.');
+                            results.push({ machine: machineName, success: true });
+                            Logger.info(`Podman machine '${machineName}' started successfully.`);
                         } else {
-                            vscode.window.showErrorMessage(`Failed to start Podman: ${stderr}`, 'Close');
-                            Logger.error(`Failed to start Podman machine: ${stderr}`);
+                            results.push({ machine: machineName, success: false, error: stderr });
+                            Logger.error(`Failed to start Podman machine '${machineName}': ${stderr}`);
                         }
+
+                        completedMachines++;
+                        progress.report({
+                            increment: (100 / totalMachines),
+                            message: `Completed ${completedMachines}/${totalMachines}`
+                        });
                     }
-                );
-            }
-        })
-        ,
+
+                    // Show results summary
+                    const successful = results.filter(r => r.success);
+                    const failed = results.filter(r => !r.success);
+
+                    if (failed.length === 0) {
+                        vscode.window.showInformationMessage(
+                            `Successfully started ${successful.length} machine(s): ${successful.map(r => r.machine).join(', ')}`,
+                            'Close'
+                        );
+                    } else if (successful.length === 0) {
+                        vscode.window.showErrorMessage(
+                            `Failed to start all machines. Check output for details.`,
+                            'Close'
+                        );
+                    } else {
+                        vscode.window.showWarningMessage(
+                            `Started ${successful.length} machine(s). Failed: ${failed.map(r => r.machine).join(', ')}`,
+                            'Close'
+                        );
+                    }
+
+                    // Refresh status
+                    await podmanManager.checkPodmanStatus(statusBar);
+                }
+            );
+        }),
         vscode.commands.registerCommand('podmanStatusMonitor.rebootMachine', async () => {
             const selection = await vscode.window.showQuickPick(['Reboot Machine', 'Cancel'], {
                 placeHolder: 'What would you like to do?'
@@ -60,7 +130,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             if (selection === 'Reboot Machine') {
                 const command: string = os.platform() === 'win32' ? 'shutdown /r /t 5' : 'sudo reboot';
-                const { stdout, stderr, exitCode } = await runCommand(command);
+                const { stdout, stderr, exitCode } = await podmanManager.runCommand(command);
                 Logger.info(`Reboot command stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
 
                 if (exitCode === 0) {
@@ -74,100 +144,8 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    async function checkPodmanStatus() {
-        Logger.info(`Host machine OS: ${os.platform()}`);
-        const cmd: string = 'podman machine list --format "{{json .}}" | ConvertFrom-Json | Select-Object Name, Running | ConvertTo-Json'
-        const { stdout, stderr, exitCode } = await runCommand(cmd);
-        statusBar.command = 'podman.refreshStatus'; // Reset command to manual refresh
-
-        Logger.info(`Podman status check stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
-        // stdout is expected to be a JSON array of objects with Name and Running properties
-        const machines = JSON.parse(stdout || '[]');
-        Logger.info(`Parsed Podman machine names: ${machines.map((m: any) => m.Name)}`);
-
-        if (stderr?.includes('command not found') || stderr?.includes('is not recognized')) {
-            statusBar.text = '$(error) Podman: Not Installed';
-            statusBar.color = 'purple';
-            Logger.error('Podman is not installed on this system.');
-            const selection = await vscode.window.showErrorMessage('Podman is not installed. Please visit official Podman page for installation instructions.', 'Visit Website', 'Close');
-
-            if (selection === 'Visit Website') {
-                vscode.env.openExternal(vscode.Uri.parse('https://podman.io/docs/installation'));
-            }
-            return;
-        }
-
-        if (exitCode === 0) {
-            if (os.platform() === 'linux') {
-                statusBar.text = '$(rocket) Podman: Installed';
-                statusBar.color = 'green';
-                statusBar.tooltip = 'Podman on Linux runs containers using host kernel namespaces/cgroups, no VM required.';
-                Logger.info('Podman on Linux detected, no machine status needed.');
-            } else {
-                const totalMachineCounts = machines.length;
-                const runningMachineCounts = machines.filter((m: any) => m.Running).length;
-
-                if (runningMachineCounts === totalMachineCounts) {
-                    Logger.info('All Podman machines are running.');
-                    statusBar.text = `$(rocket) Podman: Running (${runningMachineCounts}/${totalMachineCounts}) machine(s)`;
-                    statusBar.color = 'green';
-                    // when clicked the podman running status bar, It will popup a message to start the stopped machines
-                } else if (runningMachineCounts < totalMachineCounts && runningMachineCounts > 0) {
-                    Logger.warn('Some Podman machines are not running.');
-                    statusBar.text = `$(circle-slash) Podman: Stopped (${runningMachineCounts}/${totalMachineCounts}) machine(s)`;
-                    statusBar.color = 'orange';
-
-                    const stoppedMachines: string[] = machines.filter((m: any) => !m.Running).map((m: any) => m.Name);
-                    statusBar.command = 'podmanStatusMonitor.startMachine';
-
-                    const selection = await vscode.window.showWarningMessage('Some Podman machines are not running. Would you like to start them?', 'Start Machines', 'Close');
-                    if (selection === 'Start Machines') {
-                        await vscode.commands.executeCommand('podmanStatusMonitor.startPodman', stoppedMachines);
-                    }
-                } else {
-                    Logger.error('No Podman machines are running.');
-                    statusBar.text = `$(circle-slash) Podman: Stopped (${runningMachineCounts}/${totalMachineCounts}) machine(s)`;
-                    statusBar.color = 'red';
-
-                    const stoppedMachines: string[] = machines.filter((m: any) => !m.Running).map((m: any) => m.Name);
-                    statusBar.command = 'podmanStatusMonitor.startMachine';
-
-                    const selection = await vscode.window.showWarningMessage('Some Podman machines are not running. Would you like to start them?', 'Start Machines', 'Close');
-                    if (selection === 'Start Machines') {
-                        await vscode.commands.executeCommand('podmanStatusMonitor.startPodman', stoppedMachines);
-                    }
-                }
-            }
-        }
-        else {
-            statusBar.text = '$(error) Podman: Error';
-            statusBar.color = 'purple';
-            // If user clicks on the status bar, we could prompt at the top pallete to select the option to reboot podman machine
-            Logger.error(`Error checking Podman status: ${stderr}`);
-            statusBar.command = 'podmanStatusMonitor.rebootMachine';
-            const selection = await vscode.window.showErrorMessage('Error checking Podman status. Please ensure Podman is installed. If Podman is installed, then click to reboot the machine.', 'Reboot Machine', 'Close');
-
-            if (selection === 'Reboot Machine') {
-                await vscode.commands.executeCommand('podmanStatusMonitor.rebootMachine');
-            }
-        }
-    }
-
     // Initial check
-    checkPodmanStatus();
-}
-
-
-function runCommand(cmd: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-    return new Promise((resolve) => {
-        exec(
-            cmd,
-            { shell: os.platform() === 'win32' ? 'powershell.exe' : '/bin/bash' },
-            (error: any, stdout: any, stderr: any) => {
-                resolve({ stdout, stderr, exitCode: error?.code ?? 0 });
-            }
-        )
-    });
+    podmanManager.checkPodmanStatus(statusBar);
 }
 
 export function deactivate() {
