@@ -168,6 +168,7 @@ class PodmanManager {
             Logger.error('Podman is not installed on this system.');
             return 'Podman is not installed on this system.';
         } else if (os.platform() === 'linux') {
+            Logger.info('Podman on Linux detected, no machine status needed.');
             return 'Podman on Linux runs containers using host kernel namespaces/cgroups, no VM required.';
         } else if (exitCode !== 0 || !stdout) {
             Logger.error(`Failed to get machine status: ${stdout}`);

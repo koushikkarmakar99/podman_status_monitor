@@ -11,3 +11,4 @@ src/**
 .gitconfig
 tsconfig.json
 TODO.md
+podman-status-monitor-quickstart.md
