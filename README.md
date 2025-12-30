@@ -6,8 +6,8 @@
 
 ## Features
 
-- List running/stopped/exited Podman containers from VSCode
-- Real-time status updates
+- If podman is installed but no podman machine is present, then it gives an option to create podman machine
+- Real-time status updates of podman machine(s)
 - Configurable monitoring intervals
 - Option to start the podman machine if stopped.
 - In case of error, it gives option to reboot the machine.
@@ -16,8 +16,8 @@
 
 - **Language:** TypeScript
 - **Extension Host:** Visual Studio Code
-- **Dependencies:** Podman (installed on your system), Node.js, and npm
-- **Supported OS:** Windows (recommended)
+- **Dependencies:** Podman (installed on your system), Node.js, and npm, WSL (Windowd and Mac)
+- **Supported OS:** Windows, Linux & Mac
 
 ## Getting Started
 
@@ -36,6 +36,7 @@ cd podman_status_monitor
 - Node.js >= 20.x
 - npm >= 9.x
 - Podman installed and available in PATH
+- WSL installed and virtualization is enabled (Windows and Mac)
 - VSCode installed
 
 **Install Podman:**
@@ -63,8 +64,10 @@ If applicable, edit configuration files in the workspace.
 
 ### Usage
 
-- The extension displays statuses and details about your Podman containers within VSCode.
-- Container status updates are shown in the status bar or a dedicated view.
+- The extension pops up a message if podman is installed but no podman nachine found (Windows and Mac) 
+- The popup displays a button to create podman machine from VSCode itself without using terminal
+- The extension displays statuses and details about your Podman machine(s) within VSCode status bar
+- If any podman machine is stopped, it shows a popup along with a button to start it from VSCode without using any terminal
 - For command documentation, run `Podman: Help` in the Command Palette or see the extension’s documentation.
 
 ## Debugging
@@ -80,7 +83,7 @@ If you run into issues during development or usage:
 3. **Verify Podman installation:**  
    Ensure you can run:
    ```bash
-   podman ps
+   podman --version
    ```
    from your terminal.
 
