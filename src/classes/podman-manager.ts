@@ -159,10 +159,17 @@ class PodmanManager {
     // ⏹ Stopped podman-machine2
     // ▶ Running podman-machine3
     async toolTipStatus(): Promise<string> {
-        const cmd: string = 'podman machine list --format "{{json .}}"';
-        const { stdout, exitCode } = await this.runCommand(cmd);
 
-        if (exitCode !== 0 || !stdout) {
+        const cmd: string = 'podman machine list --format "{{json .}}"';
+        const { stdout, stderr, exitCode } = await this.runCommand(cmd);
+        Logger.info(`Tooltip Podman status check stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
+
+        if (stderr?.includes('command not found') || stderr?.includes('is not recognized')) {
+            Logger.error('Podman is not installed on this system.');
+            return 'Podman is not installed on this system.';
+        } else if (os.platform() === 'linux') {
+            return 'Podman on Linux runs containers using host kernel namespaces/cgroups, no VM required.';
+        } else if (exitCode !== 0 || !stdout) {
             Logger.error(`Failed to get machine status: ${stdout}`);
             return 'Failed to get machine status';
         }
