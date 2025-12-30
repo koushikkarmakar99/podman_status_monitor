@@ -7,18 +7,27 @@ class PodmanManager {
     // Method to check Podman status and update status bar
     async checkPodmanStatus(statusBar: vscode.StatusBarItem) {
         Logger.info(`Host machine OS: ${os.platform()}`);
-        const cmd: string = 'podman machine list --format "{{json .}}" | ConvertFrom-Json | Select-Object Name, Running | ConvertTo-Json'
+        const cmd: string = 'podman machine list --format "{{json .}}"'
         const { stdout, stderr, exitCode } = await this.runCommand(cmd);
         statusBar.command = 'podman.refreshStatus'; // Reset command to manual refresh
 
         Logger.info(`Podman status check stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
         // stdout is expected to be a JSON array of objects with Name and Running properties
-        const machines = JSON.parse(stdout || '[]');
+        const machines = stdout
+            .trim()
+            .split('\n')
+            .filter(line => line.trim())
+            .map(line => JSON.parse(line));
         Logger.info(`Parsed Podman machine names: ${machines.map((m: any) => m.Name)}`);
 
         if (stderr?.includes('command not found') || stderr?.includes('is not recognized')) {
             statusBar.text = '$(error) Podman: Not Installed';
-            statusBar.color = 'purple';
+
+            if (vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark || vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast) {
+                statusBar.color = 'white'; // White for dark themes
+            } else {
+                statusBar.color = 'black'; // Black for light themes
+            }
             Logger.error('Podman is not installed on this system.');
             const selection = await vscode.window.showErrorMessage('Podman is not installed. Please visit official Podman page for installation instructions.', 'Visit Website', 'Close');
 
@@ -31,7 +40,11 @@ class PodmanManager {
         if (exitCode === 0) {
             if (os.platform() === 'linux') {
                 statusBar.text = '$(rocket) Podman: Installed';
-                statusBar.color = 'green';
+                if (vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark || vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast) {
+                    statusBar.color = 'white'; // White for dark themes
+                } else {
+                    statusBar.color = 'black'; // Black for light themes
+                }
                 statusBar.tooltip = 'Podman on Linux runs containers using host kernel namespaces/cgroups, no VM required.';
                 Logger.info('Podman on Linux detected, no machine status needed.');
             } else {
@@ -46,16 +59,41 @@ class PodmanManager {
                 statusBar.command = 'podman.refreshStatus';
                 const stoppedMachineCounts = stoppedMachines.length;
 
-                if (runningMachineCounts === totalMachineCounts) {
+                if (totalMachineCounts === 0) {
+                    statusBar.text = '$(error) Podman: No Machines';
+                    if (vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark || vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast) {
+                        statusBar.color = 'white'; // White for dark themes
+                    } else {
+                        statusBar.color = 'black'; // Black for light themes
+                    }
+                    Logger.warn('No Podman machines found. Please create a Podman machine to run containers.');
+                    const selection = await vscode.window.showWarningMessage('No Podman machines found. Would you like to create one now?', 'Create Machine', 'Close');
+
+                    if (selection === 'Create Machine') {
+                        await vscode.commands.executeCommand('podmanStatusMonitor.createPodmanMachine');
+                    } else {
+                        await vscode.window.showInformationMessage('You can create a Podman machine later by running "podman machine init" in your terminal.');
+                    }
+                } else if (runningMachineCounts === totalMachineCounts) {
                     Logger.info(`All Podman machine(s) are running. Machine names: ${runningMachines}`);
                     statusBar.text = `$(debug-start) Podman: Running (${runningMachineCounts}/${totalMachineCounts}) machine(s)`;
-                    statusBar.color = 'green';
+
+                    if (vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark || vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast) {
+                        statusBar.color = 'white'; // White for dark themes
+                    } else {
+                        statusBar.color = 'black'; // Black for light themes
+                    }
                     // when clicked the podman running status bar, It will popup a message to start the stopped machines
                 } else if (runningMachineCounts < totalMachineCounts && runningMachineCounts > 0) {
                     Logger.info(`${runningMachineCounts} Podman machine(s) are running. Machine names: ${runningMachines}`);
                     Logger.warn(`${stoppedMachineCounts} Podman machine(s) are not running. Machine names: ${stoppedMachines}`);
                     statusBar.text = `$(debug-stop) Podman: Stopped (${stoppedMachineCounts}/${totalMachineCounts}) machine(s)`;
-                    statusBar.color = 'orange';
+
+                    if (vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark || vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast) {
+                        statusBar.color = 'white'; // White for dark themes
+                    } else {
+                        statusBar.color = 'black'; // Black for light themes
+                    }
                     const selection = await vscode.window.showWarningMessage(
                         `${stoppedMachineCounts} Podman machine(s) stopped: ${stoppedMachines.join(', ')}. Would you like to start them?`,
                         'Start Machines',
@@ -68,7 +106,12 @@ class PodmanManager {
                 } else {
                     Logger.error(`No Podman machine(s) are running. Machine names: ${stoppedMachines}`);
                     statusBar.text = `$(debug-stop) Podman: Stopped (${stoppedMachineCounts}/${totalMachineCounts}) machine(s)`;
-                    statusBar.color = 'red';
+
+                    if (vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark || vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast) {
+                        statusBar.color = 'white'; // White for dark themes
+                    } else {
+                        statusBar.color = 'black'; // Black for light themes
+                    }
                     const selection = await vscode.window.showWarningMessage('All Podman machines are stopped. Would you like to start them?', 'Start Machines', 'Close');
 
                     if (selection === 'Start Machines') {
@@ -79,7 +122,12 @@ class PodmanManager {
         }
         else {
             statusBar.text = '$(error) Podman: Error';
-            statusBar.color = 'purple';
+
+            if (vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Dark || vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.HighContrast) {
+                statusBar.color = 'white'; // White for dark themes
+            } else {
+                statusBar.color = 'black'; // Black for light themes
+            }
             // If user clicks on the status bar, we could prompt at the top pallete to select the option to reboot podman machine
             Logger.error(`Error checking Podman status: ${stderr}`);
             statusBar.command = 'podmanStatusMonitor.rebootMachine';
@@ -111,17 +159,23 @@ class PodmanManager {
     // ⏹ Stopped podman-machine2
     // ▶ Running podman-machine3
     async toolTipStatus(): Promise<string> {
-        const cmd: string = 'podman machine list --format "{{json .}}" | ConvertFrom-Json | Select-Object Name, Running | ConvertTo-Json';
+        const cmd: string = 'podman machine list --format "{{json .}}"';
         const { stdout, exitCode } = await this.runCommand(cmd);
 
         if (exitCode !== 0 || !stdout) {
+            Logger.error(`Failed to get machine status: ${stdout}`);
             return 'Failed to get machine status';
         }
 
         try {
-            const machines = JSON.parse(stdout || '[]');
+            const machines = stdout
+                .trim()
+                .split('\n')
+                .filter(line => line.trim())
+                .map(line => JSON.parse(line));
 
             if (machines.length === 0) {
+                Logger.warn('No Podman machines found');
                 return 'No Podman machines found';
             }
 

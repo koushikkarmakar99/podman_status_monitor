@@ -66,9 +66,12 @@ export async function activate(context: vscode.ExtensionContext) {
                 {
                     location: vscode.ProgressLocation.Notification,
                     title: `Starting ${selectedMachines.length} Podman Machine(s)`,
-                    cancellable: false
+                    cancellable: true
                 },
-                async (progress) => {
+                async (progress, token) => {
+                    token.onCancellationRequested(() => {
+                        Logger.info('User cancelled Podman machine start operation.');
+                    });
                     const totalMachines = selectedMachines.length;
                     let completedMachines = 0;
                     const results: { machine: string; success: boolean; error?: string }[] = [];
@@ -141,6 +144,52 @@ export async function activate(context: vscode.ExtensionContext) {
                     Logger.error(`Failed to reboot machine: ${stderr}`);
                 }
             }
+        }),
+        vscode.commands.registerCommand('podmanStatusMonitor.createPodmanMachine', async () => {
+            let machineName: any = await vscode.window.showInputBox({
+                prompt: `Press Enter to use the default name: 𝗽𝗼𝗱𝗺𝗮𝗻-𝗺𝗮𝗰𝗵𝗶𝗻𝗲-𝗱𝗲𝗳𝗮𝘂𝗹𝘁`,
+                placeHolder: 'Machine Name',
+                ignoreFocusOut: true,
+                value: 'podman-machine-default'
+            });
+
+            if (!machineName || machineName.trim() === '') {
+                Logger.info('No machine name provided. Using default name: podman-machine-default');
+                machineName = 'podman-machine-default';
+            }
+
+            await vscode.window.withProgress(
+                {
+                    location: vscode.ProgressLocation.Notification,
+                    title: `Creating Podman Machine: ${machineName}`,
+                    cancellable: true
+                },
+                async (progress, token) => {
+                    token.onCancellationRequested(() => {
+                        Logger.info('User cancelled Podman machine creation operation.');
+                    });
+                    progress.report({ increment: 0, message: `Initializing machine ${machineName}...` });
+                    // Create and start the podman machine
+                    const { stdout, stderr, exitCode } = await podmanManager.runCommand(`podman machine init --now ${machineName}`);
+                    Logger.info(`Podman machine init command for ${machineName} - stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
+
+                    progress.report({ increment: 50, message: `Finalizing machine ${machineName}...` });
+
+                    if (exitCode === 0) {
+                        vscode.window.showInformationMessage(`Podman machine '${machineName}' created successfully.`, 'Close');
+                        Logger.info(`Podman machine '${machineName}' created successfully.`);
+                        progress.report({ increment: 100, message: `${machineName} created` });
+                        vscode.window.showInformationMessage(`Podman machine '${machineName}' created successfully.`, 'Close');
+                    } else {
+                        vscode.window.showErrorMessage(`Failed to create Podman machine '${machineName}': ${stderr}`, 'Close');
+                        Logger.error(`Failed to create Podman machine '${machineName}': ${stderr}`);
+                        progress.report({ increment: 100, message: `Failed to create ${machineName}` });
+                        vscode.window.showErrorMessage(`Failed to create Podman machine '${machineName}': ${stderr}`, 'Close');
+                    }
+                }
+            );
+            // Refresh status
+            await podmanManager.checkPodmanStatus(statusBar);
         })
     );
 
