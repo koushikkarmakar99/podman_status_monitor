@@ -123,6 +123,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
                     // Refresh status
                     await podmanManager.checkPodmanStatus(statusBar);
+                    statusBar.tooltip = await podmanManager.toolTipStatus();
+                    Logger.info(`Podman status refreshed by user: ${os.userInfo().username}`);
                 }
             );
         }),
@@ -190,6 +192,8 @@ export async function activate(context: vscode.ExtensionContext) {
             );
             // Refresh status
             await podmanManager.checkPodmanStatus(statusBar);
+            statusBar.tooltip = await podmanManager.toolTipStatus();
+            Logger.info(`Podman status refreshed by user: ${os.userInfo().username}`);
         })
     );
 
