@@ -13,17 +13,20 @@ steps:
     versionSpec: '20.x'
   displayName: 'Install Node.js'
 
-- script: |
-    npm install
-    npm install --save-dev @vscode/vsce
+- task: CmdLine@2
   displayName: 'Install dependencies and vsce'
+  inputs:
+    script: |
+      npm install
+      npm install --save-dev @vscode/vsce
 
-- script: |
-    npx vsce package
+- task: CmdLine@2
   displayName: 'Package VS Code extension'
+  inputs:
+    script: |
+      npx vsce package
 
-- script: |
-    npx @vscode/vsce publish --pat $VSCE_PAT
+- task: CmdLine@2
   displayName: 'Publish to VS Code Marketplace'
-  env:
-    VSCE_PAT: $(VSCE_PAT)
+  inputs:
+    script: 'npx @vscode/vsce publish --pat %VSCE_PAT%'
