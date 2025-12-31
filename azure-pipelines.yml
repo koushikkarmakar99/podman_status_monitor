@@ -10,24 +10,27 @@ steps:
     versionSpec: '20.x'
   displayName: 'Install Node.js'
 
-- task: CmdLine@2
-  displayName: 'Diagnostics: env, cwd, node, npm'
+- task: PowerShell@2
+  displayName: 'Diagnostics: PowerShell modules and env'
   inputs:
+    pwsh: true
+    targetType: 'inline'
     script: |
-      echo Current dir:
-      cd
-      echo ---- list repo ----
-      dir /b
-      echo ---- node/npm ----
-      node -v || echo "node not found"
-      npm -v || echo "npm not found"
-      where node || true
-      echo ---- PATH ----
-      echo %PATH%
-      echo ---- network test ----
-      powershell -Command "Test-NetConnection dev.azure.com -Port 443"
-      echo ---- show package.json ----
-      type package.json
+      $ErrorActionPreference = 'Continue'
+      Write-Output "PSVersionTable:"
+      $PSVersionTable
+
+      Write-Output "PSModulePath:"
+      $env:PSModulePath -split ';' | ForEach-Object { Write-Output " - $_" }
+
+      Write-Output "Find Microsoft.PowerShell.Security modules:"
+      Get-Module -ListAvailable Microsoft.PowerShell.Security | Format-List -Property Name,ModuleBase,Version -Force
+
+      Write-Output "Try importing Microsoft.PowerShell.Security (verbose):"
+      Import-Module Microsoft.PowerShell.Security -Verbose -Force -ErrorAction SilentlyContinue
+
+      Write-Output "Search repo and agent working dir for types.ps1xml:"
+      Get-ChildItem -Path . -Recurse -Filter *.ps1xml -ErrorAction SilentlyContinue | Select-Object FullName -First 50
 
 - task: CmdLine@2
   displayName: 'Install dependencies (with verbose log)'
