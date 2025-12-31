@@ -11,7 +11,10 @@ A Visual Studio Code extension that monitors and manages Podman machines directl
 Monitor your Podman machine status at a glance with live updates in the VS Code status bar:
 - **Running**: 🟢 Podman: Running (1/1) machine(s)
 - **Stopped**: 🔴 Podman: Stopped (0/2) machine(s)
-- **Hover** over the status bar to see detailed information about each machine
+- **Hover** over the status bar to see detailed information about each machine:
+    - ▶ Running podman-machine1
+    - ⏹ Stopped podman-machine2
+    - ▶ Running podman-machine3
 
 ### 🚀 Quick Machine Management
 - **Start Machines**: Start stopped machines directly from VS Code with a single click
@@ -100,9 +103,9 @@ This extension currently works out-of-the-box with no configuration required. Fu
 ## 🐛 Known Issues
 
 - **Failed to create podman machine**: While creating podman machine user may face `Failed to create Podman machine 'podman-machine-default': Error: vm "<machine name>" already exists on hypervisor`. This happens if users unsuccessfully removed an old podman machine and tried to create a new machine with a same name. This occurs as the WSL distro was not unregistred successfully when the podman machine was deleted. To fix this issue. Open a terminal and run the below command -
-```PowerShell
-wsl --unregister <machine name>"
-```
+  ```PowerShell
+  wsl --unregister <machine name>"
+  ```
 
 This item is in the TODO list to automate the fix.
 
@@ -124,9 +127,10 @@ git clone https://github.com/koushikkarmakar99/podman_status_monitor.git
 # Install dependencies
 cd podman_status_monitor
 npm install
+npm install --save-dev @types/vscode@^1.95.0
 
 # Compile and watch
-npm run watch
+npm run compile
 
 # Press F5 in VS Code to start debugging
 ```
