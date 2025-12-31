@@ -7,7 +7,7 @@ pool:
 steps:
 - task: NodeTool@0
   inputs:
-    versionSpec: '18.x'
+    versionSpec: '20.x'
   displayName: 'Install Node.js'
 
 - task: CmdLine@2
@@ -25,9 +25,9 @@ steps:
   inputs:
     script: 'npx vsce package'
 
-- task: CmdLine@2
-  displayName: 'Publish to VS Code Marketplace'
-  inputs:
-    script: 'npx vsce publish --pat %VSCE_PAT%'
-  env:
-    VSCE_PAT: $(VSCE_PAT)
+# - task: CmdLine@2
+#   displayName: 'Publish to VS Code Marketplace'
+#   inputs:
+#     script: 'npx vsce publish --pat %VSCE_PAT%'
+#   env:
+#     VSCE_PAT: $(VSCE_PAT)
