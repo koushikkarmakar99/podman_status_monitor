@@ -10,16 +10,13 @@ pool:
 steps:
 - task: NodeTool@0
   inputs:
-    versionSpec: '18.x'
+    versionSpec: '20.x'
   displayName: 'Install Node.js'
 
 - script: |
     npm install
+    npm install --save-dev @vscode/vsce
   displayName: 'Install dependencies and vsce'
-
-- script: |
-    npm run compile
-  displayName: 'Compile TypeScript'
 
 - script: |
     npx vsce package
