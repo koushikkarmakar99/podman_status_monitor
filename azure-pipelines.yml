@@ -1,8 +1,11 @@
+variables:
+  AZP_AGENT_CLEANUP_PSMODULES_IN_POWERSHELL: "true"
+
 trigger:
 - main
 
 pool:
-  name: 'Default'
+  name: 'MySelfHostedPool'
 
 steps:
 - task: NodeTool@0
@@ -10,52 +13,19 @@ steps:
     versionSpec: '20.x'
   displayName: 'Install Node.js'
 
-- task: PowerShell@2
-  displayName: 'Diagnostics: PowerShell modules and env'
-  inputs:
-    pwsh: true
-    targetType: 'inline'
-    script: |
-      $ErrorActionPreference = 'Continue'
-      Write-Output "PSVersionTable:"
-      $PSVersionTable
+- script: |
+    npm install
+  displayName: 'Install dependencies and vsce'
 
-      Write-Output "PSModulePath:"
-      $env:PSModulePath -split ';' | ForEach-Object { Write-Output " - $_" }
+- script: npm run compile
+  displayName: 'Compile TypeScript'
 
-      Write-Output "Find Microsoft.PowerShell.Security modules:"
-      Get-Module -ListAvailable Microsoft.PowerShell.Security | Format-List -Property Name,ModuleBase,Version -Force
+- script: |
+    vsce package
+  displayName: 'Package VS Code extension'
 
-      Write-Output "Try importing Microsoft.PowerShell.Security (verbose):"
-      Import-Module Microsoft.PowerShell.Security -Verbose -Force -ErrorAction SilentlyContinue
-
-      Write-Output "Search repo and agent working dir for types.ps1xml:"
-      Get-ChildItem -Path . -Recurse -Filter *.ps1xml -ErrorAction SilentlyContinue | Select-Object FullName -First 50
-
-- task: CmdLine@2
-  displayName: 'Install dependencies (with verbose log)'
-  inputs:
-    script: |
-      npm install --verbose 2>&1 | tee npm-install.log || (type npm-install.log & exit 1)
-
-# - task: CmdLine@2
-#   displayName: 'Install dependencies'
-#   inputs:
-#     script: 'npm install'
-
-# - task: CmdLine@2
-#   displayName: 'Compile TypeScript'
-#   inputs:
-#     script: 'npm run compile'
-
-# - task: CmdLine@2
-#   displayName: 'Package VS Code extension'
-#   inputs:
-#     script: 'npx vsce package'
-
-# - task: CmdLine@2
-#   displayName: 'Publish to VS Code Marketplace'
-#   inputs:
-#     script: 'npx vsce publish --pat %VSCE_PAT%'
-#   env:
-#     VSCE_PAT: $(VSCE_PAT)
+- script: |
+    vsce publish --pat $VSCE_PAT
+  displayName: 'Publish to VS Code Marketplace'
+  env:
+    VSCE_PAT: $(VSCE_PAT)
