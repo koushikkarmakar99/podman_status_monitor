@@ -1,0 +1,29 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: NodeTool@0
+  inputs:
+    versionSpec: '18.x'
+  displayName: 'Install Node.js'
+
+- script: |
+    npm install -g vsce
+    npm install
+  displayName: 'Install dependencies and vsce'
+
+- script: npm run compile
+  displayName: 'Compile TypeScript'
+
+- script: |
+    vsce package
+  displayName: 'Package VS Code extension'
+
+- script: |
+    vsce publish --pat $VSCE_PAT
+  displayName: 'Publish to VS Code Marketplace'
+  env:
+    VSCE_PAT: $(VSCE_PAT)
