@@ -1,33 +1,30 @@
-trigger:
-- main
-
-pool:
-  name: 'Default'
-
 steps:
 - task: NodeTool@0
   inputs:
-    versionSpec: '20.x'
+    versionSpec: '18.x'
   displayName: 'Install Node.js'
 
 - task: CmdLine@2
-  displayName: 'Install dependencies'
+  displayName: 'Diagnostics: env, cwd, node, npm'
   inputs:
-    script: 'npm install'
+    script: |
+      echo Current dir:
+      cd
+      echo ---- list repo ----
+      dir /b
+      echo ---- node/npm ----
+      node -v || echo "node not found"
+      npm -v || echo "npm not found"
+      where node || true
+      echo ---- PATH ----
+      echo %PATH%
+      echo ---- network test ----
+      powershell -Command "Test-NetConnection dev.azure.com -Port 443"
+      echo ---- show package.json ----
+      type package.json
 
 - task: CmdLine@2
-  displayName: 'Compile TypeScript'
+  displayName: 'Install dependencies (with verbose log)'
   inputs:
-    script: 'npm run compile'
-
-- task: CmdLine@2
-  displayName: 'Package VS Code extension'
-  inputs:
-    script: 'npx vsce package'
-
-# - task: CmdLine@2
-#   displayName: 'Publish to VS Code Marketplace'
-#   inputs:
-#     script: 'npx vsce publish --pat %VSCE_PAT%'
-#   env:
-#     VSCE_PAT: $(VSCE_PAT)
+    script: |
+      npm install --verbose 2>&1 | tee npm-install.log || (type npm-install.log & exit 1)
