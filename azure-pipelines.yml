@@ -23,7 +23,7 @@ steps:
   displayName: 'Package VS Code extension'
 
 - script: |
-    npx vsce publish --pat $VSCE_PAT
+    npx @vscode/vsce publish --pat $VSCE_PAT
   displayName: 'Publish to VS Code Marketplace'
   env:
     VSCE_PAT: $(VSCE_PAT)
