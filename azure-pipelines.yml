@@ -1,7 +1,13 @@
+trigger:
+- main
+
+pool:
+  name: 'Default'
+
 steps:
 - task: NodeTool@0
   inputs:
-    versionSpec: '18.x'
+    versionSpec: '20.x'
   displayName: 'Install Node.js'
 
 - task: CmdLine@2
@@ -28,3 +34,25 @@ steps:
   inputs:
     script: |
       npm install --verbose 2>&1 | tee npm-install.log || (type npm-install.log & exit 1)
+
+# - task: CmdLine@2
+#   displayName: 'Install dependencies'
+#   inputs:
+#     script: 'npm install'
+
+# - task: CmdLine@2
+#   displayName: 'Compile TypeScript'
+#   inputs:
+#     script: 'npm run compile'
+
+# - task: CmdLine@2
+#   displayName: 'Package VS Code extension'
+#   inputs:
+#     script: 'npx vsce package'
+
+# - task: CmdLine@2
+#   displayName: 'Publish to VS Code Marketplace'
+#   inputs:
+#     script: 'npx vsce publish --pat %VSCE_PAT%'
+#   env:
+#     VSCE_PAT: $(VSCE_PAT)
