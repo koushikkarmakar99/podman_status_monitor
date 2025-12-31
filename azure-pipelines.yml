@@ -1,3 +1,6 @@
+variables:
+  AZP_AGENT_CLEANUP_PSMODULES_IN_POWERSHELL: "true"
+
 trigger:
 - main
 
