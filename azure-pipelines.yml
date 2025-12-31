@@ -5,12 +5,12 @@ trigger:
 - main
 
 pool:
-  name: 'MySelfHostedPool'
+  name: 'Default'
 
 steps:
 - task: NodeTool@0
   inputs:
-    versionSpec: '20.x'
+    versionSpec: '18.x'
   displayName: 'Install Node.js'
 
 - script: |
