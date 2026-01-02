@@ -34,7 +34,7 @@ steps:
       Write-Host "Debugging the VSCE_PAT token..."
       
       $ErrorActionPreference = 'Continue'
-      $output = & npx @vscode/vsce verify-pat $env:VSCE_PAT 2>&1
+      $output = & npx @vscode/vsce verify-pat --pat $env:VSCE_PAT 2>&1
       $exitCode = $LASTEXITCODE
       
       Write-Host $output
