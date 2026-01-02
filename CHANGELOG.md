@@ -20,3 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Configurable monitoring intervals
 - Option to start the podman machine if stopped.
 - In case of error, it gives option to reboot the machine.
+
+## [0.0.2] - 2026-01-02
+### Updated
+- Documentation
+- Search keywords

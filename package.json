@@ -2,7 +2,7 @@
     "name": "podman-status-monitor",
     "displayName": "Podman Status Monitor",
     "description": "A VSCode extension to monitor the status of Podman machines.",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "publisher": "karmakars",
     "engines": {
         "vscode": "^1.95.0"
@@ -10,10 +10,16 @@
     "icon": "images/icon.png",
     "repository": {
         "type": "git",
-        "url": "https://github.com/koushikkarmakar99/podman-status-monitor"
+        "url": "https://github.com/koushikkarmakar99/podman_status_monitor"
     },
     "categories": [
         "Other"
+    ],
+    "keywords": [
+        "podman",
+        "podman status monitor",
+        "podman machine",
+        "podman machine monitor"
     ],
     "activationEvents": [
         "onStartupFinished"

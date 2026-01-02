@@ -20,7 +20,7 @@ Monitor your Podman machine status at a glance with live updates in the VS Code 
 - **Start Machines**: Start stopped machines directly from VS Code with a single click
 - **Multi-Machine Support**: Select specific machines to start or start all at once
 - **Create Machines**: Initialize new Podman machines without leaving your editor
-- **Status Refresh**: Right-click the status bar to manually refresh machine status
+- **Status Refresh**: Click on the status bar to manually refresh machine status
 
 ### 🛠️ Smart Detection
 - Automatically detects Podman installation
@@ -42,11 +42,13 @@ Monitor your Podman machine status at a glance with live updates in the VS Code 
 4. Click **Install**
 
 ### Manual Installation (VSIX)
-1. Download the `.vsix` file from the [Releases](https://github.com/koushikkarmakar99/podman_status_monitor/releases) page
-2. Open VS Code Extensions view (`Ctrl+Shift+X`)
-3. Click the `...` menu at the top-right
-4. Select **Install from VSIX...**
-5. Choose the downloaded `.vsix` file
+1. Open VS Code
+2. Press `Ctrl+Shift+X` (Windows/Linux) or `Cmd+Shift+X` (macOS) to open Extensions
+3. Search for **"Podman Status Monitor"**
+4. Right click and **Download VSIX**
+5. Click the `...` menu at the top-right
+6. Select **Install from VSIX...**
+7. Choose the downloaded `.vsix` file and install
 
 ## 🚀 Getting Started
 
@@ -127,7 +129,6 @@ git clone https://github.com/koushikkarmakar99/podman_status_monitor.git
 # Install dependencies
 cd podman_status_monitor
 npm install
-npm install --save-dev @types/vscode@^1.95.0
 
 # Compile and watch
 npm run compile

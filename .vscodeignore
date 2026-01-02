@@ -12,3 +12,4 @@ src/**
 tsconfig.json
 TODO.md
 podman-status-monitor-quickstart.md
+azure-pipelines.yml

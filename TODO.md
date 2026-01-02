@@ -12,8 +12,8 @@
 ---
 
 ## ✅ Completed
-- [✅] Initial VSCode extension scaffolding
-- [✅] Basic Podman container status display
-- [✅] Support for configurable monitoring interval
-- [✅] Feature: Add option to install and setup podman using VSCode window show quickpick options
-- [✅] Handle status if multiple podman machines are created on user's machine
+- ✅Podman cont Initial VSCode extension scaffolding
+- ✅ Basic ainer status display
+- ✅ Support for configurable monitoring interval
+- ✅ Feature: Add option to install and setup podman using VSCode window show quickpick options
+- ✅ Handle status if multiple podman machines are created on user's machine
