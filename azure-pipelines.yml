@@ -29,10 +29,29 @@ steps:
 - task: PowerShell@2
   displayName: 'Test token authentication'
   inputs:
-    targetType: 'inline'
-    script: |
-      Write-Host "Testing token authentication with VS Code Marketplace..."
-      Write-Host $env:VSCE_PAT
-      
+        targetType: 'inline'
+        script: |
+          Write-Host "Testing token authentication with VS Code Marketplace..."
+
+          $output = npx @vscode/vsce verify-pat $env:VSCE_PAT 2>&1
+
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "✓ Token authenticated successfully with VS Code Marketplace!"
+          } else {
+            Write-Error "Token authentication failed!"
+            Write-Host "Error output: $output"
+            Write-Host ""
+            Write-Host "Possible reasons:"
+            Write-Host "  1. Token has expired"
+            Write-Host "  2. Token doesn't have 'Marketplace: Manage' scope"
+            Write-Host "  3. Publisher account is not set up"
+            Write-Host ""
+            Write-Host "To fix:"
+            Write-Host "  1. Go to https://dev.azure.com"
+            Write-Host "  2. User Settings → Personal Access Tokens"
+            Write-Host "  3. Create new token with 'Marketplace: Manage' scope"
+            Write-Host "  4. Update VSCE_PAT variable in pipeline"
+            exit 1
+          }
   env:
-    VSCE_PAT: $(VSCE_PAT)
+        VSCE_PAT: $(VSCE_PAT)
