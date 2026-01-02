@@ -13,35 +13,55 @@ steps:
     versionSpec: '20.x'
   displayName: 'Install Node.js'
 
-- task: CmdLine@2
+- task: PowerShell@2
   displayName: 'Install dependencies and vsce'
   inputs:
-    script: |
-      npm install
-      npm install --save-dev @vscode/vsce
-
-- task: CmdLine@2
-  displayName: 'Package VS Code extension'
-  inputs:
-    script: |
-      npx vsce package
-
-- task: PowerShell@2
-  displayName: 'Debugging VSCE_PAT token'
-  inputs:
     targetType: 'inline'
+    pwsh: true
     script: |
-      Write-Host "Debugging the VSCE_PAT token..."
-      
-      $ErrorActionPreference = 'Continue'
-      $output = & npx @vscode/vsce verify-pat --pat $env:VSCE_PAT 2>&1
+      Write-Host "Installing npm dependencies..."
+      $output = & npm install 2>&1
       $exitCode = $LASTEXITCODE
-      
-      Write-Host $output
+      Write-Host "Output of npm install: [$output]"
       
       if ($exitCode -ne 0) {
-        Write-Error "Publishing failed - check error message above"
-        exit 1
+          throw "npm install failed with exit code [$exitCode]"
       }
-  env:
-    VSCE_PAT: $(VSCE_PAT)
+
+- task: PowerShell@2
+  displayName: 'Package VS Code extension'
+  inputs:
+    targetType: 'inline'
+    pwsh: true
+    script: |
+      Write-Host "Packaging VS Code extension..."
+      $output = & npx vsce package 2>&1
+      $exitCode = $LASTEXITCODE
+      Write-Host "Output of vsce package: [$output]"
+
+      if ($exitCode -ne 0) {
+          throw "vsce package failed with exit code [$exitCode]"
+      }
+
+- task: PowerShell@2
+  displayName: 'Validate Publish Token'
+  inputs:
+    targetType: 'inline'
+    pwsh: true
+    script: |
+      Write-Host "Validating VSCE_PAT environment variable..."
+
+      if (-not $env:VSCE_PAT) {
+          throw "VSCE_PAT environment variable is not set. Please set the publish token."
+      } else {
+          Write-Host "VSCE_PAT is set."
+      }
+
+      $output = & npx @vscode/vsce verify-pat --pat $env:VSCE_PAT 2>&1
+      $exitCode = $LASTEXITCODE
+
+      if ($exitCode -ne 0) {
+          throw "VSCE_PAT validation failed with exit code [$exitCode]"
+      } else {
+          Write-Host "VSCE_PAT is valid."
+      }
