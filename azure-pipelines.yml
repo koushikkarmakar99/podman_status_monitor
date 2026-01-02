@@ -65,3 +65,5 @@ steps:
       } else {
           Write-Host "VSCE_PAT is valid."
       }
+  env:
+    VSCE_PAT: $(VSCE_PAT)
