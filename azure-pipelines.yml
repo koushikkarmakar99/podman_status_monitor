@@ -27,11 +27,21 @@ steps:
       npx vsce package
 
 - task: PowerShell@2
-  displayName: 'Test token authentication'
+  displayName: 'Debugging VSCE_PAT token'
   inputs:
-        targetType: 'inline'
-        script: |
-          Write-Host "Testing token authentication with VS Code Marketplace..."
-          Write-Host $env:VSCE_PAT
+    targetType: 'inline'
+    script: |
+      Write-Host "Debugging the VSCE_PAT token..."
+      
+      $ErrorActionPreference = 'Continue'
+      $output = & npx @vscode/vsce verify-pat $env:VSCE_PAT 2>&1
+      $exitCode = $LASTEXITCODE
+      
+      Write-Host $output
+      
+      if ($exitCode -ne 0) {
+        Write-Error "Publishing failed - check error message above"
+        exit 1
+      }
   env:
-        VSCE_PAT: $(VSCE_PAT)
+    VSCE_PAT: $(VSCE_PAT)
