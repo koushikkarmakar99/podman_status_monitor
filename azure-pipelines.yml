@@ -2,86 +2,93 @@ variables:
   AZP_AGENT_CLEANUP_PSMODULES_IN_POWERSHELL: "true"
 
 trigger:
-- main
+  branches:
+    include:
+      - "*"
+
+pr:
+  branches:
+    include:
+      - "*"
 
 pool:
-  name: 'Default'
+  name: "Default"
 
 steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '20.x'
-  displayName: 'Install Node.js'
+  - task: NodeTool@0
+    inputs:
+      versionSpec: "20.x"
+    displayName: "Install Node.js"
 
-- task: PowerShell@2
-  displayName: 'Install dependencies and vsce'
-  inputs:
-    targetType: 'inline'
-    pwsh: true
-    script: |
-      Write-Host "Installing npm dependencies..."
-      $output = & npm install 2>&1
-      $exitCode = $LASTEXITCODE
-      Write-Host "Output of npm install: [$output]"
-      
-      if ($exitCode -ne 0) {
-          throw "npm install failed with exit code [$exitCode]"
-      }
+  - task: PowerShell@2
+    displayName: "Install dependencies and vsce"
+    inputs:
+      targetType: "inline"
+      pwsh: true
+      script: |
+        Write-Host "Installing npm dependencies..."
+        $output = & npm install 2>&1
+        $exitCode = $LASTEXITCODE
+        Write-Host "Output of npm install: [$output]"
 
-- task: PowerShell@2
-  displayName: 'Package VS Code extension'
-  inputs:
-    targetType: 'inline'
-    pwsh: true
-    script: |
-      Write-Host "Packaging VS Code extension..."
-      $output = & npx vsce package 2>&1
-      $exitCode = $LASTEXITCODE
-      Write-Host "Output of vsce package: [$output]"
+        if ($exitCode -ne 0) {
+            throw "npm install failed with exit code [$exitCode]"
+        }
 
-      if ($exitCode -ne 0) {
-          throw "vsce package failed with exit code [$exitCode]"
-      }
+  - task: PowerShell@2
+    displayName: "Package VS Code extension"
+    inputs:
+      targetType: "inline"
+      pwsh: true
+      script: |
+        Write-Host "Packaging VS Code extension..."
+        $output = & npx vsce package 2>&1
+        $exitCode = $LASTEXITCODE
+        Write-Host "Output of vsce package: [$output]"
 
-- task: PowerShell@2
-  displayName: 'Validate Publish Token'
-  inputs:
-    targetType: 'inline'
-    pwsh: true
-    script: |
-      Write-Host "Validating VSCE_PAT environment variable..."
+        if ($exitCode -ne 0) {
+            throw "vsce package failed with exit code [$exitCode]"
+        }
 
-      if (-not $env:VSCE_PAT) {
-          throw "VSCE_PAT environment variable is not set. Please set the publish token."
-      } else {
-          Write-Host "VSCE_PAT is set."
-      }
+  - task: PowerShell@2
+    displayName: "Validate Publish Token"
+    inputs:
+      targetType: "inline"
+      pwsh: true
+      script: |
+        Write-Host "Validating VSCE_PAT environment variable..."
 
-      $output = & npx @vscode/vsce verify-pat --pat $env:VSCE_PAT 2>&1
-      $exitCode = $LASTEXITCODE
+        if (-not $env:VSCE_PAT) {
+            throw "VSCE_PAT environment variable is not set. Please set the publish token."
+        } else {
+            Write-Host "VSCE_PAT is set."
+        }
 
-      if ($exitCode -ne 0) {
-          throw "VSCE_PAT validation failed with exit code [$exitCode]"
-      } else {
-          Write-Host "VSCE_PAT is valid."
-      }
-  env:
-    VSCE_PAT: $(VSCE_PAT)
+        $output = & npx @vscode/vsce verify-pat --pat $env:VSCE_PAT 2>&1
+        $exitCode = $LASTEXITCODE
 
-- task: PowerShell@2
-  displayName: 'Publish to VS Code Marketplace'
-  condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'main'))
-  inputs:
-    targetType: 'inline'
-    pwsh: true
-    script: |
-      Write-Host "Publishing VS Code extension..."
-      $output = & npx @vscode/vsce publish --pat $env:VSCE_PAT 2>&1
-      $exitCode = $LASTEXITCODE
-      Write-Host "Output of vsce publish: [$output]"
+        if ($exitCode -ne 0) {
+            throw "VSCE_PAT validation failed with exit code [$exitCode]"
+        } else {
+            Write-Host "VSCE_PAT is valid."
+        }
+    env:
+      VSCE_PAT: $(VSCE_PAT)
 
-      if ($exitCode -ne 0) {
-          throw "vsce publish failed with exit code [$exitCode]"
-      }
-  env:
-    VSCE_PAT: $(VSCE_PAT)
+  - task: PowerShell@2
+    displayName: "Publish to VS Code Marketplace"
+    condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'main'))
+    inputs:
+      targetType: "inline"
+      pwsh: true
+      script: |
+        Write-Host "Publishing VS Code extension..."
+        $output = & npx @vscode/vsce publish --pat $env:VSCE_PAT 2>&1
+        $exitCode = $LASTEXITCODE
+        Write-Host "Output of vsce publish: [$output]"
+
+        if ($exitCode -ne 0) {
+            throw "vsce publish failed with exit code [$exitCode]"
+        }
+    env:
+      VSCE_PAT: $(VSCE_PAT)
