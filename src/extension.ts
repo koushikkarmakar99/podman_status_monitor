@@ -171,22 +171,45 @@ export async function activate(context: vscode.ExtensionContext) {
                         Logger.info('User cancelled Podman machine creation operation.');
                     });
                     progress.report({ increment: 0, message: `Initializing machine ${machineName}...` });
-                    // Create and start the podman machine
-                    const { stdout, stderr, exitCode } = await podmanManager.runCommand(`podman machine init --now ${machineName}`);
-                    Logger.info(`Podman machine init command for ${machineName} - stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
+                    let retryCount = 0; // In case we need to retry WSL unregister
+                    const maxRetries = 1;
 
-                    progress.report({ increment: 50, message: `Finalizing machine ${machineName}...` });
+                    while (retryCount <= maxRetries) {
+                        // Create and start the podman machine
+                        const { stdout, stderr, exitCode } = await podmanManager.runCommand(`podman machine init --now ${machineName}`);
+                        Logger.info(`Podman machine init command for ${machineName} - stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
 
-                    if (exitCode === 0) {
-                        vscode.window.showInformationMessage(`Podman machine '${machineName}' created successfully.`, 'Close');
-                        Logger.info(`Podman machine '${machineName}' created successfully.`);
-                        progress.report({ increment: 100, message: `${machineName} created` });
-                        vscode.window.showInformationMessage(`Podman machine '${machineName}' created successfully.`, 'Close');
-                    } else {
-                        vscode.window.showErrorMessage(`Failed to create Podman machine '${machineName}': ${stderr}`, 'Close');
-                        Logger.error(`Failed to create Podman machine '${machineName}': ${stderr}`);
-                        progress.report({ increment: 100, message: `Failed to create ${machineName}` });
-                        vscode.window.showErrorMessage(`Failed to create Podman machine '${machineName}': ${stderr}`, 'Close');
+                        progress.report({ increment: 50, message: `Finalizing machine ${machineName}...` });
+
+                        if (exitCode === 0) {
+                            vscode.window.showInformationMessage(`Podman machine '${machineName}' created successfully.`, 'Close');
+                            Logger.info(`Podman machine '${machineName}' created successfully.`);
+                            progress.report({ increment: 100, message: `${machineName} created` });
+                            vscode.window.showInformationMessage(`Podman machine '${machineName}' created successfully.`, 'Close');
+                            retryCount = maxRetries + 1; // Exit loop
+                        } else {
+                            vscode.window.showErrorMessage(`Failed to create Podman machine '${machineName}': ${stderr}`, 'Close');
+                            Logger.error(`Failed to create Podman machine '${machineName}': ${stderr}`);
+                            progress.report({ increment: 100, message: `Failed to create ${machineName}` });
+                            const errorMessage = `Error: vm "${machineName}" already exists on hypervisor`;
+
+                            if (stderr.includes(errorMessage)) {
+                                Logger.warn(`podman machine creation failed due to to WSL conflict for machine '${machineName}'. Trying to unregister the WSL distro and re-try podman machine creation.`);
+                                retryCount++;
+                                vscode.window.showWarningMessage(`Attempting to unregister WSL distro for machine '${machineName}' (Attempt ${retryCount} of ${maxRetries})`, 'Close');
+                                const { stdout, stderr, exitCode } = await podmanManager.runCommand(`wsl --unregister ${machineName}`);
+                                Logger.info(`WSL unregister command for ${machineName} - stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
+
+                                if (exitCode === 0) {
+                                    vscode.window.showInformationMessage(`Successfully unregistered WSL distro for machine '${machineName}'. Retrying Podman machine creation.`, 'Close');
+                                    Logger.info(`Successfully unregistered WSL distro for machine '${machineName}'. Retrying Podman machine creation.`);
+                                } else {
+                                    vscode.window.showErrorMessage(`Failed to unregister WSL distro for machine '${machineName}. Please fix the issue and retry': ${stderr}`, 'Close');
+                                    Logger.error(`Failed to unregister WSL distro for machine '${machineName}': ${stderr}`);
+                                    retryCount = maxRetries + 1; // Exit loop
+                                }
+                            }
+                        }
                     }
                 }
             );

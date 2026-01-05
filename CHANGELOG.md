@@ -25,3 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Updated
 - Documentation
 - Search keywords
+
+### [0.0.3] - 2026-01-04
+### Added
+- Fix of `Failed to create Podman machine 'podman-machine-default': Error: vm "podman-machine-default" already exists on hypervisor`
