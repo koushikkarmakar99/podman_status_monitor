@@ -104,10 +104,7 @@ This extension currently works out-of-the-box with no configuration required. Fu
 
 ## 🐛 Known Issues
 
-- **Failed to create podman machine**: While creating podman machine user may face `Failed to create Podman machine 'podman-machine-default': Error: vm "<machine name>" already exists on hypervisor`. This happens if users unsuccessfully removed an old podman machine and tried to create a new machine with a same name. This occurs as the WSL distro was not unregistred successfully when the podman machine was deleted. To fix this issue. Open a terminal and run the below command -
-  ```PowerShell
-  wsl --unregister <machine name>"
-  ```
+- Nothing at these moment.
 
 This item is in the TODO list to automate the fix.
 
