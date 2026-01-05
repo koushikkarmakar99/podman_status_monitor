@@ -45,6 +45,7 @@ steps:
 
 - task: PowerShell@2
   displayName: 'Validate Publish Token'
+  condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'release'))
   inputs:
     targetType: 'inline'
     pwsh: true
@@ -64,23 +65,6 @@ steps:
           throw "VSCE_PAT validation failed with exit code [$exitCode]"
       } else {
           Write-Host "VSCE_PAT is valid."
-      }
-  env:
-    VSCE_PAT: $(VSCE_PAT)
-
-- task: PowerShell@2
-  displayName: 'Publish to VS Code Marketplace'
-  inputs:
-    targetType: 'inline'
-    pwsh: true
-    script: |
-      Write-Host "Publishing VS Code extension..."
-      $output = & npx @vscode/vsce publish --pat $env:VSCE_PAT 2>&1
-      $exitCode = $LASTEXITCODE
-      Write-Host "Output of vsce publish: [$output]"
-
-      if ($exitCode -ne 0) {
-          throw "vsce publish failed with exit code [$exitCode]"
       }
   env:
     VSCE_PAT: $(VSCE_PAT)
