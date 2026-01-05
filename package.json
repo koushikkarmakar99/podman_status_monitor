@@ -2,10 +2,10 @@
     "name": "podman-status-monitor",
     "displayName": "Podman Status Monitor",
     "description": "A VSCode extension to monitor the status of Podman machines.",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "publisher": "karmakars",
     "engines": {
-        "vscode": "^1.95.0"
+        "vscode": "^1.106.2"
     },
     "icon": "images/icon.png",
     "repository": {
@@ -42,7 +42,7 @@
     },
     "devDependencies": {
         "@types/node": "^24.10.1",
-        "@types/vscode": "^1.95.0",
+        "@types/vscode": "^1.106.2",
         "typescript": "^5.x"
     },
     "dependencies": {

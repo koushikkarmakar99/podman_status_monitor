@@ -70,6 +70,7 @@ steps:
 
 - task: PowerShell@2
   displayName: 'Publish to VS Code Marketplace'
+  condition: and(succeeded(), eq(variables['Build.SourceBranchName'], 'main'))
   inputs:
     targetType: 'inline'
     pwsh: true
