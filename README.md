@@ -9,8 +9,8 @@ A Visual Studio Code extension that monitors and manages Podman machines directl
 
 ### 🔍 Real-Time Machine Status
 Monitor your Podman machine status at a glance with live updates in the VS Code status bar:
-- **Running**: 🟢 Podman: Running (1/1) machine(s)
-- **Stopped**: 🔴 Podman: Stopped (0/2) machine(s)
+- **Running**: 🟢 Podman: Running (2/3) machine(s)
+- **Stopped**: 🔴 Podman: Stopped (0/3) machine(s)
 - **Hover** over the status bar to see detailed information about each machine:
     - ▶ Running podman-machine1
     - ⏹ Stopped podman-machine2
@@ -21,6 +21,7 @@ Monitor your Podman machine status at a glance with live updates in the VS Code 
 - **Multi-Machine Support**: Select specific machines to start or start all at once
 - **Create Machines**: Initialize new Podman machines without leaving your editor
 - **Status Refresh**: Click on the status bar to manually refresh machine status
+- **Auto Refresh**: If podman machine(s) status gets updates in the background. It will get auto refreshed
 
 ### 🛠️ Smart Detection
 - Automatically detects Podman installation

@@ -13,7 +13,24 @@ export async function activate(context: vscode.ExtensionContext) {
     statusBar.tooltip = await podmanManager.toolTipStatus();
     statusBar.command = 'podman.refreshStatus';
     statusBar.show();
-    context.subscriptions.push(statusBar,
+    context.subscriptions.push(
+        statusBar,
+        vscode.commands.registerCommand('podman.autoRefreshStatus', async () => {
+            statusBar.tooltip = await podmanManager.toolTipStatus();
+            const tooltipStatusAtT0 = statusBar.tooltip; // tooltipStatus at t=0s
+            // If there is a change in statusBar.tooltip, call podmanManager.checkPodmanStatus(statusBar)
+            setTimeout(async () => {
+                statusBar.tooltip = await podmanManager.toolTipStatus();
+                const tooltipStatusAtT10 = statusBar.tooltip; // tooltipStatus at t=10s
+                
+                // Compare the two tooltip statuses
+                if (tooltipStatusAtT0 !== tooltipStatusAtT10) {
+                    await podmanManager.checkPodmanStatus(statusBar);
+                    Logger.info('Podman status changed, updated status bar.');
+                }
+                
+            }, 10000);
+        }),
         vscode.commands.registerCommand('podman.refreshStatus', async () => {
             await podmanManager.checkPodmanStatus(statusBar);
             vscode.window.showInformationMessage('Podman status refreshed');
@@ -25,7 +42,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
             // If no machines provided, get list of stopped machines
             if (!stoppedMachines || stoppedMachines.length === 0) {
-                const { stdout: machineListOutput } = await podmanManager.runCommand('podman machine list --format json');
+                const cmd: string = 'podman machine list --format json';
+                Logger.info(`Executing command to get stopped machines: [${cmd}]...`);
+                const { stdout: machineListOutput } = await podmanManager.runCommand(cmd);
 
                 try {
                     const parsed = JSON.parse(machineListOutput);
@@ -82,7 +101,9 @@ export async function activate(context: vscode.ExtensionContext) {
                             message: `Starting ${machineName} (${completedMachines + 1}/${totalMachines})...`
                         });
 
-                        const { stdout, stderr, exitCode } = await podmanManager.runCommand(`podman machine start ${machineName}`);
+                        const cmd: string = `podman machine start ${machineName}`;
+                        Logger.info(`Executing command: [${cmd}]...`);
+                        const { stdout, stderr, exitCode } = await podmanManager.runCommand(cmd);
                         Logger.info(`Podman start command for ${machineName} - stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
 
                         if (exitCode === 0) {
@@ -176,7 +197,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
                     while (retryCount <= maxRetries) {
                         // Create and start the podman machine
-                        const { stdout, stderr, exitCode } = await podmanManager.runCommand(`podman machine init --now ${machineName}`);
+                        const cmd: string = `podman machine init --now ${machineName}`;
+                        Logger.info(`Executing command: [${cmd}]...`);
+                        const { stdout, stderr, exitCode } = await podmanManager.runCommand(cmd);
                         Logger.info(`Podman machine init command for ${machineName} - stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
 
                         progress.report({ increment: 50, message: `Finalizing machine ${machineName}...` });
@@ -197,7 +220,9 @@ export async function activate(context: vscode.ExtensionContext) {
                                 Logger.warn(`podman machine creation failed due to to WSL conflict for machine '${machineName}'. Trying to unregister the WSL distro and re-try podman machine creation.`);
                                 retryCount++;
                                 vscode.window.showWarningMessage(`Attempting to unregister WSL distro for machine '${machineName}' (Attempt ${retryCount} of ${maxRetries})`, 'Close');
-                                const { stdout, stderr, exitCode } = await podmanManager.runCommand(`wsl --unregister ${machineName}`);
+                                const cmd: string = `wsl --unregister ${machineName}`;
+                                Logger.info(`Executing command: [${cmd}]...`);
+                                const { stdout, stderr, exitCode } = await podmanManager.runCommand(cmd);
                                 Logger.info(`WSL unregister command for ${machineName} - stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
 
                                 if (exitCode === 0) {
@@ -221,7 +246,11 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     // Initial check
-    podmanManager.checkPodmanStatus(statusBar);
+    await podmanManager.checkPodmanStatus(statusBar);
+    // Recurring checks: every 10 seconds
+    statusCheckInterval = setInterval(() => {
+        void vscode.commands.executeCommand('podman.autoRefreshStatus');
+    }, 10000);
 }
 
 export function deactivate() {

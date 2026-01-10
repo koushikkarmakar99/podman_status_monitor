@@ -29,3 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### [0.0.3] - 2026-01-04
 ### Added
 - Fix of `Failed to create Podman machine 'podman-machine-default': Error: vm "podman-machine-default" already exists on hypervisor`
+
+### [1.0.0] - 2026-01-09
+### Added
+- Added a new logic to get the status refreshed automatically every 10 seconds
+
+### Updated
+- Updated to colorful icons for better visibility
