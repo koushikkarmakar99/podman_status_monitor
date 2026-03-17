@@ -22,23 +22,13 @@ const podmanStatus: {
 class UnifiedStatusBar {
 
     updateUnifiedStatusBar(statusbar: vscode.StatusBarItem): void {
-        const section = [podmanStatus.podmanMachine];
-        const hasError = section.some(s => s.isError);
-        const hasWarning = section.some(s => s.isWarning);
-
-        if (hasError) {
-            statusbar.text = `$(error) Podman Status: Issues Detected`;
-        } else if (hasWarning) {
-            statusbar.text = `$(warning) Podman Status: Warnings Detected`;
-        } else {
-            statusbar.text = `$(check) Podman Status: All Systems Operational`;
-        }
+        statusbar.text = `$(loading~spin) Checking Podman status... `;
 
         const md = new vscode.MarkdownString('', true);
         md.isTrusted = true;
         md.supportThemeIcons = true;
 
-        md.appendMarkdown(`### Podman Status\n`);
+        md.appendMarkdown(`### Podman Machine Status\n`);
         md.appendMarkdown(`- **Podman**: ${podmanStatus.podmanMachine.label}\n`);
         md.appendMarkdown(`\n---\n`);
         // give an option to create new machines

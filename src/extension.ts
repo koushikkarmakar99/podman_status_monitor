@@ -38,6 +38,9 @@ export async function activate(context: vscode.ExtensionContext) {
     const refreshStatus = vscode.commands.registerCommand('podman.refreshStatus', async () => {
         statusBar.text = '$(loading~spin) Refreshing...';
         await podmanManager.checkPodmanStatus(statusBar);
+        statusBar.hide();
+        statusBar.show();
+        await podmanManager.checkPodmanStatus(statusBar);
         statusBar.tooltip = await podmanManager.toolTipStatus();
         Logger.info(`Podman status refreshed by user: ${os.userInfo().username}`);
     });
@@ -45,6 +48,9 @@ export async function activate(context: vscode.ExtensionContext) {
     const startPodman = vscode.commands.registerCommand('podmanStatusMonitor.startPodman', async (machineName: string) => {
         statusBar.text = `$(loading~spin) Starting ${machineName}...`;
         await podmanManager.startPodmanMachine(machineName);
+        statusBar.hide();
+        statusBar.show();
+        await podmanManager.checkPodmanStatus(statusBar);
         statusBar.tooltip = await podmanManager.toolTipStatus();
         Logger.info(`Podman machine ${machineName} started by user: ${os.userInfo().username}`);
     });
@@ -52,6 +58,9 @@ export async function activate(context: vscode.ExtensionContext) {
     const stopPodman = vscode.commands.registerCommand('podmanStatusMonitor.stopPodman', async (machineName: string) => {
         statusBar.text = `$(loading~spin) Stopping ${machineName}...`;
         await podmanManager.stopPodmanMachine(machineName);
+        statusBar.hide();
+        statusBar.show();
+        await podmanManager.checkPodmanStatus(statusBar);
         statusBar.tooltip = await podmanManager.toolTipStatus();
         Logger.info(`Podman machine ${machineName} stopped by user: ${os.userInfo().username}`);
     });
@@ -59,6 +68,9 @@ export async function activate(context: vscode.ExtensionContext) {
     const deletePodmanMachine = vscode.commands.registerCommand('podmanStatusMonitor.deletePodmanMachine', async (machineName: string) => {
         statusBar.text = `$(loading~spin) Deleting ${machineName}...`;
         await podmanManager.deletePodmanMachine(machineName);
+        statusBar.hide();
+        statusBar.show();
+        await podmanManager.checkPodmanStatus(statusBar);
         statusBar.tooltip = await podmanManager.toolTipStatus();
         Logger.info(`Podman machine ${machineName} deleted by user: ${os.userInfo().username}`);
     });
@@ -99,6 +111,9 @@ export async function activate(context: vscode.ExtensionContext) {
         statusBar.text = `$(loading~spin) Creating ${machineName}...`;
         // Refresh status
         await podmanManager.createPodmanMachine(machineName);
+        statusBar.hide();
+        statusBar.show();
+        await podmanManager.checkPodmanStatus(statusBar);
         statusBar.tooltip = await podmanManager.toolTipStatus();
         Logger.info(`Podman status refreshed by user: ${os.userInfo().username}`);
     });
@@ -115,8 +130,9 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     // Initial check
-    await podmanManager.toolTipStatus();
-    // Recurring checks: every 10 seconds
+    await podmanManager.checkPodmanStatus(statusBar);
+    void vscode.commands.executeCommand('podman.refreshStatus');
+    // Recurring checks: every 60 seconds
     statusCheckInterval = setInterval(() => {
         void vscode.commands.executeCommand('podman.refreshStatus');
     }, 60000);
