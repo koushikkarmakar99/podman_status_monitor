@@ -15,13 +15,11 @@ class Logger {
     public static error(message: string): void {
         this.buffer.push(`ERROR: ${message}`);
         this.channel.error(`${message}`);
-        this.channel.show();
     }
 
     public static warn(message: string): void {
         this.buffer.push(`WARN: ${message}`);
         this.channel.warn(`${message}`);
-        this.channel.show(true);
     }
 }
 
