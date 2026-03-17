@@ -163,7 +163,6 @@ class PodmanManager {
             Logger.info(`Podman machine init command for ${machineName} - stdout: ${stdout}, stderr: ${stderr}, exitCode: ${exitCode}`);
 
             if (exitCode === 0) {
-                vscode.window.showInformationMessage(`Podman machine '${machineName}' created successfully.`, 'Close');
                 Logger.info(`Podman machine '${machineName}' created successfully.`);
                 retryCount = maxRetries + 1; // Exit loop
             } else {
