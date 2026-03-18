@@ -15,16 +15,7 @@ class PodmanManager {
 
         if (stderr?.includes('command not found') || stderr?.includes('is not recognized')) {
             this.setStatus(statusBar, '⛔ Podman: Not Installed', 'white', 'black');
-            Logger.error('Podman is not installed on this system.');
-            const selection = await vscode.window.showErrorMessage('Podman is not installed. Please visit official Podman page for installation instructions.', 'Visit Website', 'Close');
-
-            if (selection === 'Visit Website') {
-                vscode.env.openExternal(vscode.Uri.parse('https://podman.io/docs/installation'));
-            }
-            return;
-        }
-
-        if (exitCode === 0) {
+        } else if (exitCode === 0) {
             if (os.platform() === 'linux') {
                 this.setStatus(statusBar, '🚀 Podman: Installed', 'white', 'black');
                 statusBar.tooltip = 'Podman on Linux runs containers using host kernel namespaces/cgroups, no VM required.';
@@ -51,8 +42,7 @@ class PodmanManager {
                     this.setStatus(statusBar, `🟥 Podman: Stopped (${stoppedMachineCounts}/${totalMachineCounts}) machine(s)`, 'white', 'black');
                 }
             }
-        }
-        else {
+        } else {
             this.setStatus(statusBar, '⛔ Podman: Error', 'white', 'black');
             // If user clicks on the status bar, we could prompt at the top pallete to select the option to reboot podman machine
             Logger.error(`Error checking Podman status: ${stderr}`);
@@ -198,7 +188,7 @@ class PodmanManager {
         const cmd = `podman machine rm ${machineName} -f`;
         const { stdout, stderr, exitCode } = await this.runCommand(cmd);
         if (exitCode === 0) {
-             Logger.info(`Podman machine "${machineName}" deleted successfully. Output: ${stdout}`);
+            Logger.info(`Podman machine "${machineName}" deleted successfully. Output: ${stdout}`);
         } else {
             vscode.window.showErrorMessage(`Failed to delete Podman machine "${machineName}". Error: ${stderr}`);
             Logger.error(`Failed to delete Podman machine "${machineName}". Error: ${stderr}`);
@@ -223,6 +213,10 @@ class PodmanManager {
 
         if (stderr?.includes('command not found') || stderr?.includes('is not recognized')) {
             md.appendMarkdown(`⛔ Podman is not installed on this system.\n`);
+            md.appendMarkdown(`\n---\n\n`);
+            md.appendMarkdown(`[Visit Podman Installation Guide](https://podman.io/docs/installation)\n`);
+            md.appendMarkdown(`\n---\n\n`);
+            md.appendMarkdown(`[🔄 Refresh](command:podman.refreshStatus)\n`);
         } else if (os.platform() === 'linux') {
             md.appendMarkdown(`🐧 Podman on Linux runs containers using host kernel namespaces/cgroups, no VM required.\n`);
         } else if (exitCode !== 0 || !stdout) {
