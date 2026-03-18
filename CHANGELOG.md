@@ -36,3 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Updated
 - Updated to colorful icons for better visibility
+
+### [2.0.0] - 2026-03-18
+### Added
+- Added refresh, start/stop and delete podman machine option within the status bar tooltip.
+
+### Updated
+- Updated logic to show loading spin on the status bar rather showing a popup.

@@ -10,11 +10,13 @@ A Visual Studio Code extension that monitors and manages Podman machines directl
 ### 🔍 Real-Time Machine Status
 Monitor your Podman machine status at a glance with live updates in the VS Code status bar:
 - **Running**: 🟢 Podman: Running (2/3) machine(s)
-- **Stopped**: 🔴 Podman: Stopped (0/3) machine(s)
-- **Hover** over the status bar to see detailed information about each machine:
-    - ▶ Running podman-machine1
-    - ⏹ Stopped podman-machine2
-    - ▶ Running podman-machine3
+- **Stopped**: 🔴 Podman: Stopped (1/3) machine(s)
+- **Partial**: 🟠 Podman: Stopped (1/3) machine(s)
+- **Hover** over the status bar to see a unified details panel featuring:
+    - Current Podman machine status
+    - **➕ Create New Machine** - Quick link to add a new machine
+    - **🔄 Refresh** - Manual status refresh button
+    - Last checked timestamp for status accuracy
 
 ### 🚀 Quick Machine Management
 - **Start Machines**: Start stopped machines directly from VS Code with a single click
@@ -56,9 +58,9 @@ Monitor your Podman machine status at a glance with live updates in the VS Code 
 1. **Install the extension** following the instructions above
 2. The extension **activates automatically** when VS Code starts
 3. Check the **status bar** (bottom-left) for Podman machine status
-4. **Hover** over the status to see machine details
-5. **Click** the status to start stopped machines or create new ones
-6. **Right-click** to refresh the status
+4. **Hover** over the status for quick access to machine management options
+5. **Click buttons** in the tooltip to create machines or refresh status
+6. View the **last checked timestamp** to know when the status was last updated
 
 ### First-Time Setup
 If Podman is not installed, the extension will:
@@ -77,23 +79,25 @@ If Podman is not installed, the extension will:
 
 ## 🎯 Usage Examples
 
-### Starting a Stopped Machine
-1. When machines are stopped, a notification appears: *"Some Podman machines are not running. Would you like to start them?"*
-2. Click **Start Machines**
-3. Select the machine(s) you want to start
-4. Monitor progress in the notification area
+### Checking Machine Status
+1. View the status bar at the bottom-left of VS Code
+2. **Hover** to open the unified status panel showing:
+   - Current machine status (Running/Stopped/No Machines)
+   - Quick action buttons for machine management
+   - Last checked timestamp
+3. Status updates automatically when changes occur in the background
 
 ### Creating a New Machine
-1. If no machines exist, click the status bar notification
-2. Click **Create Machine**
-3. Enter a machine name (or press Enter for default: `podman-machine-default`)
+1. **Hover** over the status bar to open the details panel
+2. Click **➕ Create New Machine**
+3. Enter a machine name (or press Enter for `podman-machine-default`)
 4. Wait for initialization to complete
-5. Optionally start the machine immediately
+5. The status bar will reflect the new machine
 
-### Multi-Machine Management
-- View all machine statuses by hovering over the status bar
-- Start multiple machines simultaneously by selecting them from the quick pick menu
-- Individual machine status is displayed in a formatted table
+### Refreshing Status
+1. **Hover** over the status bar to open the details panel
+2. Click **🔄 Refresh** to manually update the status
+3. The timestamp will update after refresh completes
 
 ## ⚙️ Extension Settings
 
